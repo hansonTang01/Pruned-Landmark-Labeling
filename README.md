@@ -22,8 +22,8 @@
       * map_file: the map_file of the built index
 
   * 说明：（以test2.map图为例）
-    * 构建order: `python pll.py -i test2.map -o 3`   (这里的3是代表betweenness-based order)
+    * 构建order: `python pll.py build -i test2.map -o 3`   (这里的3是代表betweenness-based order)
     * 100000次查询： `pyhon test_query.py -i test2.map`  
     * 顺序问题： 
       * 需要先build后，此时ppl.idx文件写入了正确的index，才能进行查询
-      * 2-hop-based order是对已有的Label进行构建的新的order，所以需要先采用其他三种order构建策略进行build后，才能构建2-hop-based order， eg： `python pll.py -i test2.map -o 3`后才能进行`python pll.py -i test2.map -o 4`
+      * 2-hop-based order是对已有的Label进行构建的新的order，所以需要先采用其他三种order构建策略进行build后，才能构建2-hop-based order， eg： `python pll.py build -i test2.map -o 3`后才能进行`python pll.py build -i test2.map -o 4`
