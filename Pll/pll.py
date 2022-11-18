@@ -177,6 +177,20 @@ class PrunedLandmarkLabeling(object):
         # print(result)
         return result
 
+    def gen_closeness_base_order(self):
+        result = {}
+        nNodes = len(self.graph.nodes())
+        nodes_list = nx.closeness_centrality(self.graph, weight="weight")
+        # print(f"closeness:{nodes_list}")
+        nodes_list = list(sorted(nodes_list.items(), key=lambda item:item[1], reverse = True))
+        # print(f"nodes_list:{nodes_list}")
+        for idx, v in enumerate(nodes_list):
+            # print(f"idx:{idx}, v:{v}")
+            result[v[0]] = nNodes - idx
+            # print(f"result:{result}")
+        # print(result)
+        return result
+        
     def gen_betweeness_base_order(self):
         result = {}
         nNodes = len(self.graph.nodes())
@@ -254,6 +268,8 @@ class PrunedLandmarkLabeling(object):
         if (mode == 3):
             self.vertex_order = self.gen_betweeness_base_order()
         if (mode == 4):
+            self.vertex_order = self.gen_closeness_base_order()
+        if (mode == 5):
             self.vertex_order = self.gen_2_hop_base_order()
         self.vertex_order = {k: v for k, v in sorted(self.vertex_order.items(), key=lambda item: -item[1])}
         # print("vertex order: ")
