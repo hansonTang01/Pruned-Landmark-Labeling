@@ -10,7 +10,7 @@ import threading
 import multiprocessing
 import getopt
 
-index_file_path = "ppl.idx"
+index_file_path = "pll.idx"
 max_length = 999999999
 
 #Build调用： PrunedLandmarkLabeling(map_file_name, order_mode, False, is_multi_process)
@@ -29,22 +29,25 @@ class PrunedLandmarkLabeling(object):
             if (map_file_name != ""):
                 # 读取图并计算读取的时间
                 start_time_readGraph = time.time()
+                self.map_file_name = map_file_name
                 self.graph = self.read_graph(map_file_name)
-                print(f"finish Reading graph")
-                print(f"Time cost of Reading graph is {time.time()-start_time_readGraph}")
-                print("***********************************")
+                # print(f"finish Reading graph")
+                # print(f"Time cost of Reading graph is {time.time()-start_time_readGraph}")
+                # print("***********************************")
                 # 构建Index
                 if (is_multi_process):
                     # 使用多进程——这部分代码还没看
                     self.index = self.build_index_multi_process(order_mode)
                 else:
                     # 不使用多进程
-                    self.index, start_time_BFS = self.build_index(order_mode)
+                    self.index, start_time_BFS = self.build_index(order_mode,map_file_name)
                     print(f'finish building index')
-                    print(f'Time cost of building index is {time.time()-start_time_BFS}')
+                    self.BFS_time = time.time() - start_time_BFS
+                    print(f'Time cost: {(self.BFS_time):.4f}')
                     print("***********************************")
-                    print(f"Index Size: {self.index_size} Bytes ")
-                    print(f"Average Index Size: {self.index_size/len(self.graph.nodes())} Bytes ")
+                    # print(f"Index Size: {self.index_size} Bytes ")
+                    self.Average_Index_Size= self.index_size/len(self.graph.nodes())
+                    print(f"Average Index Size: {(self.Average_Index_Size):.4f} Bytes ")
 
             # Query——查询俩点间的距离
             else:
@@ -55,7 +58,7 @@ class PrunedLandmarkLabeling(object):
             self.index = self.load_index(index_file_path)
 
     # 将构建好的index和order写入pll.idx
-    def write_index(self):
+    def write_index(self, map_file_name):
         f = open(index_file_path, 'w')
         # f.writelines(str(len(self.graph.nodes)) + "\n")
         # print("Index:")
@@ -67,6 +70,20 @@ class PrunedLandmarkLabeling(object):
         f.write(write_data)
         f.write('\n')
         f.write(json.dumps(self.vertex_order))
+        f.close()
+        fileName = "./idx_list/"+map_file_name+"_index.idx"
+        f = open(fileName,"a")
+        f.write(write_data)
+        f.write("\n")
+        f.close()
+    
+    # 将每轮BFS遍历的节点个数写入文件
+    def write_BFS_num_list(self, map_file_name, BFS_num_list):
+        fileName = "./idx_list/"+map_file_name+"_each_BFS_num.idx"
+        f = open(fileName, 'a')
+        write_data = json.dumps(BFS_num_list)
+        f.write(write_data)
+        f.write('\n')
         f.close()
 
     # 使用networkx读入图
@@ -180,7 +197,7 @@ class PrunedLandmarkLabeling(object):
     def gen_closeness_base_order(self):
         result = {}
         nNodes = len(self.graph.nodes())
-        nodes_list = nx.closeness_centrality(self.graph, weight="weight")
+        nodes_list = nx.closeness_centrality(self.graph)
         # print(f"closeness:{nodes_list}")
         nodes_list = list(sorted(nodes_list.items(), key=lambda item:item[1], reverse = True))
         # print(f"nodes_list:{nodes_list}")
@@ -190,7 +207,7 @@ class PrunedLandmarkLabeling(object):
             # print(f"result:{result}")
         # print(result)
         return result
-        
+
     def gen_betweeness_base_order(self):
         result = {}
         nNodes = len(self.graph.nodes())
@@ -223,7 +240,18 @@ class PrunedLandmarkLabeling(object):
         for src in nodes_list:
             for dest in nodes_list:
                 count_result[self.gen_hop_node(src, dest)]+=1
+        # print(f"count_result:{count_result}")
+        
+        # 排序
         nodes_list = list(sorted(count_result.items(), key=lambda item:item[1], reverse = True))
+        # print(f"nodes_list:{nodes_list}")
+        # 将count_result写入文件
+        fileName = "./idx_list/"+ self.map_file_name+ "_2_hop_node_count.idx"
+        f = open(fileName, 'w')
+        write_data = json.dumps(nodes_list)
+        f.write(write_data)
+        f.close()
+
         for idx, v in enumerate(nodes_list):
             result[v[0]] = nNodes - idx
         return result
@@ -262,14 +290,19 @@ class PrunedLandmarkLabeling(object):
         if (mode == 0):
             self.vertex_order = self.gen_test_order()
         if (mode == 1):
+            print("\n*************Random****************")
             self.vertex_order = self.gen_random_order()
         if (mode == 2):
+            print("\n*************Degree****************")
             self.vertex_order = self.gen_degree_base_order()
         if (mode == 3):
-            self.vertex_order = self.gen_betweeness_base_order()
-        if (mode == 4):
+            print("\n*************Clossness*************")
             self.vertex_order = self.gen_closeness_base_order()
+        if (mode == 4):
+            print("\n*************Betweenness***********")
+            self.vertex_order = self.gen_betweeness_base_order()
         if (mode == 5):
+            print("\n*************2-hop-based***********")
             self.vertex_order = self.gen_2_hop_base_order()
         self.vertex_order = {k: v for k, v in sorted(self.vertex_order.items(), key=lambda item: -item[1])}
         # print("vertex order: ")
@@ -287,16 +320,23 @@ class PrunedLandmarkLabeling(object):
         return True
 
     # 基于Order进行BFS构建Index
-    def build_index(self, order_mode = 0):
-        # 构建Order并记录时间
+    def build_index(self, order_mode = 0, map_file_name = ""):
+        # 构建Order并记录时间      
         start_time_order = time.time()
         self.gen_order(order_mode)
-        print("the order has been generated")
-        print(f"time cost of building order: {time.time()-start_time_order}")
+        print("finish generating order")
+        print(f"Time cost : {(time.time()-start_time_order):.4f}")
         print("***********************************")
 
-        # 利用Order开始BFS并记录时间
-        start_time_BFS = time.time()
+        # print(f"order::{self.vertex_order}")
+
+        # 构建BFS_num记录每轮BFS遍历的节点个数
+        BFS_num_list = {}
+        for index, node in enumerate(self.vertex_order):
+            BFS_num_list[node] = 0
+        # print(f"BFS_num_list:{BFS_num_list}")
+
+       
         self.index = {}
         has_process = {}
         pq = Q.PriorityQueue()
@@ -308,14 +348,19 @@ class PrunedLandmarkLabeling(object):
         # print(f"has_process:{has_process}")
         i = 0
         nNode = len(self.graph.nodes())
+        count = 0
+
+         # 利用Order开始BFS并记录时间
+        start_time_BFS = time.time()
         for order_item in self.vertex_order.items():
             cur_node = order_item[0]
             # print(f"cur_NODE:{cur_node}")
             i += 1
             # Calculate Forward
-            if (i%100 == 0) :
+            if (i%1000 == 0) :
                 print("Caculating %s (%d/%d) forward ... " % (cur_node, i, nNode))
             pq.put((0, cur_node))
+            # 把所有点是否剪枝记为0
             for k in has_process:
                 has_process[k] = False
                 # print(f"k:{k}")
@@ -326,8 +371,10 @@ class PrunedLandmarkLabeling(object):
                 if (has_process[src] or self.vertex_order[cur_node] < self.vertex_order[src] or not self.need_to_expand(cur_node, src, cur_dist)):
                     # print(f"self.vertex_order[cur_node]:{self.vertex_order[cur_node]}")
                     # print(f'src:{src}')
+                    
                     has_process[src] = True
                     continue
+                count+=1
                 has_process[src] = True
                 self.index[src]["forward"].append((cur_node, cur_dist))
                 # print(f"index:{self.index}")
@@ -343,7 +390,7 @@ class PrunedLandmarkLabeling(object):
                     # print("Push: (%s, %d)"%(dest, cur_dist + weight))
 
             # Calculate Backward
-            if (i%100 == 0) :
+            if (i%1000 == 0) :
                 print("Caculating %s (%d/%d) backward..." % (cur_node, i, nNode))
             pq.put((0, cur_node))
             for k in has_process:
@@ -353,6 +400,7 @@ class PrunedLandmarkLabeling(object):
                 # print("Pop: (%s %d)"%(src,cur_dist))
                 if (has_process[src] or self.vertex_order[cur_node] < self.vertex_order[src] or not self.need_to_expand(src, cur_node, cur_dist)):
                     continue
+                count+=1
                 has_process[src] = True
                 self.index[src]["backward"].append((cur_node, cur_dist))
                 edges = self.graph.in_edges(src)
@@ -364,11 +412,16 @@ class PrunedLandmarkLabeling(object):
                         continue
                     pq.put((cur_dist + weight, dest))
                     # print("Push: (%s, %d)"%(dest, cur_dist + weight))
-
+            BFS_num_list[cur_node] = count
+            count = 0
+            # print(BFS_num_list)
+            # print(f"cur_node:{cur_node}")
             # print("")
-        # 将结果写入ppl.idx
-        self.write_index()
+        # 将结果写入pll.idx
+        self.write_BFS_num_list(map_file_name,BFS_num_list)
+        self.write_index(map_file_name)
         return self.index, start_time_BFS
+
 
     # 分别构建了forward和backward是因为 图是有向图
     def build_forward_index(self, cur_node):
@@ -477,7 +530,7 @@ class PrunedLandmarkLabeling(object):
             my_result = self.query(src, dest)
             end_time = time.time()
             print("nx: %d, time: %f" % (nx_result, interval_time - start_time))
-            print("ppl: %d, time: %f" % (my_result, end_time - interval_time))
+            print("pll: %d, time: %f" % (my_result, end_time - interval_time))
             nx_times += interval_time - start_time
             pll_times += end_time - interval_time
             if (my_result == nx_result):
@@ -495,6 +548,7 @@ def usage(argv = []):
 # Function build: build order
 def build(argv):
     # default parameter
+    print(argv)
     map_file_name = ""
     order_mode = 0
     is_multi_process = False
@@ -521,8 +575,8 @@ def build(argv):
         return 2
 
     start_time = time.time()
-    ppl = PrunedLandmarkLabeling(map_file_name, order_mode, False, is_multi_process)
-    print(f"Total time: {(time.time() - start_time)}" )
+    pll = PrunedLandmarkLabeling(map_file_name, order_mode, False, is_multi_process)
+    print(f"Total time: {(time.time() - start_time):.4f}" )
     return 0
 
 def query(argv):
@@ -544,8 +598,8 @@ def query(argv):
         return 2
 
     start_time = time.time()
-    ppl = PrunedLandmarkLabeling()
-    ppl.query(src_vertex, target_vertex)
+    pll = PrunedLandmarkLabeling()
+    pll.query(src_vertex, target_vertex)
     print(f"Total time: {(time.time() - start_time)}")
     return 0
 
@@ -572,8 +626,8 @@ def test(argv):
         print(help_msg)
         return 2
 
-    ppl = PrunedLandmarkLabeling(map_file_name, 0, True)
-    ppl.validation(times)
+    pll = PrunedLandmarkLabeling(map_file_name, 0, True)
+    pll.validation(times)
     return 0
 
 action = {
@@ -594,7 +648,7 @@ if __name__ == "__main__":
         "test": test,
         "help": usage
     }
-
+    print(sys.argv)
     sys.exit(action.get(sys.argv[1], usage)(sys.argv[2:]))
 
 

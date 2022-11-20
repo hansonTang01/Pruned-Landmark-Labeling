@@ -6,7 +6,7 @@
       * map_file_name: The map file downloaded by osmnx
       * order_mode: specify the way to build the vectice order
         * 0: test order, that means the vectices ordered Sequentially
-        * 1: random order, 
+        * 1: random order
         * 2: degree-based order,
         * 3: betweenness-based order,
         * 4: 2-hop-based order

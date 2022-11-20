@@ -7,7 +7,7 @@ import pandas as pd
 ox.config(log_console=True, use_cache=True)
 
 place = 'Macau'
-gdf = ox.gdf_from_place(place)
+gdf = ox. geocode_to_gdf(place)
 area = ox.project_gdf(gdf).unary_union.area
 G = ox.graph_from_place(place, network_type='drive_service')
 print(len(G.nodes), len(G.edges))
