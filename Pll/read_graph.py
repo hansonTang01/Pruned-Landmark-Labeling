@@ -46,3 +46,5 @@ f = open(r'bio-grid-worm.edges','w')
 f.writelines(lines)
 f.close()
 '''
+
+f = open()

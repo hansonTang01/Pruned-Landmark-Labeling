@@ -239,9 +239,11 @@ class PrunedLandmarkLabeling(object):
         # print(f"index:{self.index}")
         for src in nodes_list:
             for dest in nodes_list:
-                count_result[self.gen_hop_node(src, dest)]+=1
+                hop_list = self.gen_hop_node(src,dest)
+                for hop_node in hop_list:
+                    count_result[hop_node]+=1
         # print(f"count_result:{count_result}")
-        
+        # print("test!test!")
         # 排序
         nodes_list = list(sorted(count_result.items(), key=lambda item:item[1], reverse = True))
         # print(f"nodes_list:{nodes_list}")
@@ -266,18 +268,24 @@ class PrunedLandmarkLabeling(object):
         dest_list = self.index[dest]["forward"]
         i = 0
         j = 0
-        result = max_length
+        result = self.query(src, dest)
+        if ( result == 1 or result == 0) :
+            return []
         hop = src
+        hop_list = []
         while i < len(src_list) and j < len(dest_list):
-            if (src_list[i][0] == dest_list[j][0] and result > src_list[i][1] + dest_list[j][1]):
-                result = src_list[i][1] + dest_list[j][1]
+            if (src_list[i][0] == dest_list[j][0] and result == src_list[i][1] + dest_list[j][1]):
+                # result = src_list[i][1] + dest_list[j][1]
                 hop = src_list[i][0]
+                hop_list.append(hop)
+                i += 1 
+                j += 1
             elif self.vertex_order[src_list[i][0]] > self.vertex_order[dest_list[j][0]]:
                 i += 1
             else:
                 j += 1
         # print(f"src:{src}->dest:{dest} : {hop}")
-        return hop
+        return hop_list
 
     # 生成节点的order
     def gen_order(self, mode = 0):
