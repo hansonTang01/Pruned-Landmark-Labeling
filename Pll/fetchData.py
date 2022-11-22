@@ -25,7 +25,7 @@ def entrance(mapName):
     BFS_ary.append(0)
     Index_ary.append(0)
     query_ary.append(0)
-    for i in range(2,6):
+    for i in range(2,7):
         # build Index
         BFS_time,Average_Index_Size = build(map_file_name,i)
     # print(BFS_time,Average_Index_Size)
@@ -52,6 +52,25 @@ def build(map_file_name,i):
 
     # pll.build(argv）
 
+# 基于扩散数下降
+# def feedback_tuning(map_file_name, flag, w, b, k):
+#     BFS_traverse = fetch_BFS(map_file_name, flag)
+#     for i in range(w, k+w)
+
+# 拿到上一次的BFS
+# def fetch_BFS(map_file_name, flag):
+#     result = {}
+#     fileName = "./idx_list"+ map_file_name + "_each_BFS_num.idx"
+#     f = open(fileName, 'r')
+#     raw_data = f.readlines()
+#     # 加载基于degree的BFS_count
+#     if (flag):
+#         BFS_traverse = eval(raw_data[-1])
+#     else:
+#         BFS_traverse = eval(raw_data[0])
+#     return BFS_traverse
+
+
  # 初始化图信息
 def query(map_file_name):
     query_class = pll.PrunedLandmarkLabeling()
@@ -70,3 +89,6 @@ def query(map_file_name):
         query_class.query(nodes_list[src_index],nodes_list[dest_index])
     query_time = time.time()-start_time
     return query_time
+
+
+    

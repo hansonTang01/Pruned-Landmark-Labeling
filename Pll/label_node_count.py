@@ -31,7 +31,6 @@ class PrunedLandmarkLabeling(object):
                 start_time_readGraph = time.time()
                 self.map_file_name = map_file_name
                 self.graph = self.read_graph(map_file_name)
-                print(f"nodes:{len(self.graph.nodes())}   edges:{len(self.graph.edges())}")
                 # print(f"finish Reading graph")
                 # print(f"Time cost of Reading graph is {time.time()-start_time_readGraph}")
                 # print("***********************************")
@@ -308,34 +307,16 @@ class PrunedLandmarkLabeling(object):
         nodes_list = list(sorted(count_result.items(), key=lambda item:item[1], reverse = True))
         # print(f"nodes_list:{nodes_list}")
         # 将count_result写入文件
-        fileName = "./idx_list/"+ self.map_file_name+ "label_base_count.idx"
+        fileName = "./idx_list/"+ self.map_file_name+ "_2_hop_node_count.idx"
         f = open(fileName, 'w')
         write_data = json.dumps(nodes_list)
         f.write(write_data)
         f.close()
-        
+
         for idx, v in enumerate(nodes_list):
             result[v[0]] = nNodes - idx
         return result
-
-    # def feedback_tuning(self, mode = 0, w, b, ):
-    #     BFS_traverse = self.fetch_order()
-        
-    # # 拿到上一次BFS遍历过程中的扩散
-    # def fetch_order(self, mode = 1):
-    #     result = {}
-    #     nNodes = len(self.graph.nodes())
-    #     fileName = "./idx_list"+ self.map_file_name + "_each_BFS_num.idx"
-    #     f = open(fileName, 'r')
-    #     raw_data = f.readlines()
-    #     # 加载基于degree的BFS_count
-    #     BFS_traverse = eval(raw_data[-1])
-    #     return BFS_traverse
-    #     # nodes_list = list(raw_data.keys())
-    #     # for idx, v in enumerate(nodes_list):
-    #     #     # print(f"idx:{idx}, v:{v}")
-    #     #     result[v[0]] = nNodes - idx
-    # # 生成节点的order
+    # 生成节点的order
     def gen_order(self, mode = 0):
         # 根据输入的mode采取不同的策略构建节点的order
         # mode = 1 => sequential order（图的输入顺序）
@@ -363,9 +344,6 @@ class PrunedLandmarkLabeling(object):
         if (mode == 6):
             print("\n********label-count-based**********")
             self.vertex_order = self.gen_label_count_base_order()
-        if (mode == 7):
-            print("\n********feedback_tuning************")
-            self.vertex_order = self.feedback_tuning()
         self.vertex_order = {k: v for k, v in sorted(self.vertex_order.items(), key=lambda item: -item[1])}
         # print("vertex order: ")
         # print(self.vertex_order)

@@ -24,7 +24,7 @@ def fetch_data_from_idx(file_name):
     f = open(file_name,'r')
     raw_data = f.readlines()
     # print(raw_data)
-    print(raw_data)
+    # print(raw_data)
     return raw_data
 
 # 生成所有的x和y
@@ -54,13 +54,16 @@ def generate_x_y(data):
 def plot_diffusion(x,y,file_name):
     
     # for i in range(len(x)):
-    #     plt.scatter(x[i],y[i],s=2)
-    plt.scatter(x[0],y[0],s=1,marker="+")
-    plt.scatter(x[1],y[1],s=1,marker="v")
-    plt.scatter(x[2],y[2],s=1,marker="^")
-    plt.scatter(x[3],y[3],s=1,marker="+")
+    #     plt.scatter(x[i],y[i],s=3)
+    plt.scatter(x[0],y[0],s=1)
+    plt.scatter(x[1],y[1],s=1)
+    plt.scatter(x[2],y[2],s=1)
+    plt.scatter(x[3],y[3],s=1)
+    plt.scatter(x[4],y[4],s=1)
 
-    plt.legend(['degree','closeness','betweenness','2-hop'])
+    plt.rc('legend', fontsize=20)
+    plt.legend(['degree','closeness','betweenness','2-hop','label-count-base'])
+    
     plt.xlabel("x-th BFS")
     plt.ylabel("Vertices")
     plt.title(file_name)

@@ -29,7 +29,7 @@ def fetch_map_name():
 
 # 通过pandas将list中的data插入Dataframe
 def data2pandas(BFS_list,Index_list,Query_list):
-    df = pd.DataFrame(columns=["random","Degree","Clossness","Betweenness","2-hop-based"])
+    df = pd.DataFrame(columns=["random","Degree","Clossness","Betweenness","2-hop-based","label-count-based"])
     df.loc[len(df.index)] = BFS_list
     df.loc[len(df.index)] = Index_list
     df.loc[len(df.index)] = Query_list
