@@ -95,9 +95,11 @@ class PrunedLandmarkLabeling(object):
         #if src_idx and dest_idx:
         #    src_list = src_idx.get("backward",None)
         #    dest_list = dest_idx.get("forward",None)
-
         src_list = self.index[src]["backward"]
         dest_list = self.index[dest]["forward"]
+        # print(src,dest)
+        # print(src_list)
+        # print(dest_list)
         i = 0
         j = 0
         
@@ -108,9 +110,9 @@ class PrunedLandmarkLabeling(object):
         while i < len(src_list) and j < len(dest_list):
             
             if src_list[i][0] == dest_list[j][0]:
-                
+                # print(src_list[i][0] == dest_list[j][0])
                 curr_dist = src_list[i][1] + dest_list[j][1]
-                
+                # print(curr_dist)
                 # 当前距离未必为最小，若找到更小的距离，更新最小距离，之前的 hop_nodes作废，用新的代替
                 if curr_dist < shortest_dist:
                     shortest_dist = curr_dist
@@ -119,12 +121,17 @@ class PrunedLandmarkLabeling(object):
                 # 假定当前距离为最小，相等的点被暂时加入到 hop_nodes中
                 elif curr_dist == shortest_dist:
                     hop_nodes.append(src_list[i][0])
-                    
+                i += 1
+                j += 1
+            
             elif self.vertex_order[src_list[i][0]] > self.vertex_order[dest_list[j][0]]:
                     i += 1
             else:
                     j += 1
-     
+            if(shortest_dist ==0 or shortest_dist ==1):
+                hop_nodes.clear()
+        # print(shortest_dist)
+        # print(hop_nodes)
         return shortest_dist, hop_nodes
 
     # 加载图的Index
@@ -312,16 +319,21 @@ class PrunedLandmarkLabeling(object):
     # 判断是否需要剪枝
     def need_to_expand(self, src, dest, dist = -1):
         # print("nx: %s -> %s: %d" % (src, dest, v))
-        our_result = self.query(src, dest)
+        # print(src,dest,dist)
+        our_result,_ = self.query(src, dest)
+       
+
+        # print(our_result)
         v = dist
         # print("pll: %s -> %s: %d" % (src, dest, our_result))
         if (our_result <= v):
+            # print(0)
             return False
         return True
 
     # 进行BFS
     def build_index(self):
-
+        # print(self.vertex_order)
         # 构建BFS_num记录每轮BFS遍历的节点个数
         self.BFS_num_list = {}
         for index, node in enumerate(self.vertex_order):
@@ -357,7 +369,12 @@ class PrunedLandmarkLabeling(object):
             # print(f"has_process:{has_process}")
             while (not pq.empty()):
                 cur_dist, src = pq.get()
+
                 # print("Pop: (%s %d)"%(src,cur_dist))
+                # print(has_process[src])
+                # print(self.vertex_order[cur_node] < self.vertex_order[src])
+                # print(not self.need_to_expand(cur_node, src, cur_dist))
+                # print(cur_node,src,cur_dist)
                 if (has_process[src] or self.vertex_order[cur_node] < self.vertex_order[src] or not self.need_to_expand(cur_node, src, cur_dist)):
                     # print(f"self.vertex_order[cur_node]:{self.vertex_order[cur_node]}")
                     # print(f'src:{src}')
@@ -365,6 +382,7 @@ class PrunedLandmarkLabeling(object):
                     has_process[src] = True
                     continue
                 count+=1
+                # print(count)
                 has_process[src] = True
                 self.index[src]["forward"].append((cur_node, cur_dist))
                 # print(f"index:{self.index}")
@@ -403,6 +421,7 @@ class PrunedLandmarkLabeling(object):
                     pq.put((cur_dist + weight, dest))
                     # print("Push: (%s, %d)"%(dest, cur_dist + weight))
             self.BFS_num_list[cur_node] = count
+            # print(self.BFS_num_list)
             count = 0
         # 记录BFS时间
         print(f'finish building index')
@@ -410,7 +429,7 @@ class PrunedLandmarkLabeling(object):
         print(f'Time cost: {(self.BFS_time):.4f}')
         print("***********************************")
 
-    def feedback(self, order, w, b, k):
+    def feedback(self, order, w, k_feedback, b):
         # 构建BFS_num记录每轮BFS遍历的节点个数
         self.vertex_order = self.generate_order_for_BFS(order)
         self.BFS_num_list = {}
@@ -436,7 +455,7 @@ class PrunedLandmarkLabeling(object):
             cur_node = order_item[0]
             # print(f"cur_NODE:{cur_node}")
             i += 1
-            if(i== k+w):
+            if(i== k_feedback+w):
                 break
             # Calculate Forward
             if (i%1000 == 0) :
@@ -493,9 +512,9 @@ class PrunedLandmarkLabeling(object):
                     pq.put((cur_dist + weight, dest))
                     # print("Push: (%s, %d)"%(dest, cur_dist + weight))
             self.BFS_num_list[cur_node] = count
-            BFS_traverse_record.add(count)
-            if (i >= w and i <= k+w-1):
-                if self.is_need_change_order(i-w,BFS_traverse_record,k,w,b):
+            BFS_traverse_record.append(count)
+            if (i >= w and i <= k_feedback+w-1):
+                if self.is_need_change_order(i-w,BFS_traverse_record,w, b):
                     changeSet.append(i-w)
             count = 0
         # 记录BFS时间
@@ -505,9 +524,10 @@ class PrunedLandmarkLabeling(object):
         print("***********************************")
         return BFS_traverse_record,changeSet
         
-    def is_need_change_order(cur,BFS_traverse_record,k,w,b):
-        if((sum(BFS_traverse_record[cur-w:w])-BFS_traverse_record[cur])/w>b and (sum(BFS_traverse_record[cur+1:cur+w+1])-BFS_traverse_record[cur])/w>b):
+    def is_need_change_order(cur,BFS_traverse_record, w, b):
+        if ((sum(BFS_traverse_record[cur-w:w])/w) / BFS_traverse_record[cur]> (1+b)) and ((sum(BFS_traverse_record[cur+1:cur+w+1])/w)/BFS_traverse_record[cur]>(1+b)):
             return True
+        return False
 
 
 
