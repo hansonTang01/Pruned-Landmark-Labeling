@@ -14,6 +14,7 @@ def entrance(mapName):
     BFS_ary = []
     Index_ary = []
     query_ary = []
+    build_order_time_list = []
     # print(np.shape(BFS_ary))
     # 根据命令行输入取出图的名字
     map_file_name = mapName
@@ -26,23 +27,79 @@ def entrance(mapName):
     # Index_ary.append(0)
     # query_ary.append(0)
 
-    # for i in range(2,7):
-    #     # build Index
-    #     BFS_time,Average_Index_Size = build(map_file_name,i)
-    # # print(BFS_time,Average_Index_Size)
-    #     BFS_ary.append(float("%.4f"%BFS_time))
-    #     Index_ary.append(float("%.4f"%Average_Index_Size))
+   
+    # 基于degree
+    BFS_time,Average_Index_Size,build_order_time = build(map_file_name,2)
+    BFS_ary.append(float("%.4f"%BFS_time))
+    Index_ary.append(float("%.4f"%Average_Index_Size))
+    build_order_time_list.append(float("%.4f"%build_order_time))
+    # query
+    query_time = query(map_file_name)
+    query_ary.append(float("%.4f"%query_time))
 
-    #     # query
-    #     query_time = query(map_file_name)
-    #     query_ary.append(float("%.4f"%query_time))
+    # 基于degree-base-label-count
+    BFS_time,Average_Index_Size,build_order_time = build(map_file_name,6)
+    BFS_ary.append(float("%.4f"%BFS_time))
+    Index_ary.append(float("%.4f"%Average_Index_Size))
+    build_order_time_list.append(float("%.4f"%build_order_time))
+    # query
+    query_time = query(map_file_name)
+    query_ary.append(float("%.4f"%query_time))
 
-    BFS_time,Average_Index_Size = feedback_tuning(map_file_name,5)
+    # 基于in-out-degree
+    BFS_time,Average_Index_Size,build_order_time = build(map_file_name,7)
+    BFS_ary.append(float("%.4f"%BFS_time))
+    Index_ary.append(float("%.4f"%Average_Index_Size))
+    build_order_time_list.append(float("%.4f"%build_order_time))
+    # query
+    query_time = query(map_file_name)
+    query_ary.append(float("%.4f"%query_time))
+
+    # 基于in-outdegree-base-label-count
+    BFS_time,Average_Index_Size,build_order_time = build(map_file_name,6)
+    BFS_ary.append(float("%.4f"%BFS_time))
+    Index_ary.append(float("%.4f"%Average_Index_Size))
+    build_order_time_list.append(float("%.4f"%build_order_time))
+    # query
+    query_time = query(map_file_name)
+    query_ary.append(float("%.4f"%query_time))
+
+    # 基于betweenness
+    BFS_time,Average_Index_Size,build_order_time = build(map_file_name,4)
+    BFS_ary.append(float("%.4f"%BFS_time))
+    Index_ary.append(float("%.4f"%Average_Index_Size))
+    build_order_time_list.append(float("%.4f"%build_order_time))
+    # query
+    query_time = query(map_file_name)
+    query_ary.append(float("%.4f"%query_time))
+
+    # 基于betweenness-2-hop
+    BFS_time,Average_Index_Size,build_order_time = build(map_file_name,5)
+    BFS_ary.append(float("%.4f"%BFS_time))
+    Index_ary.append(float("%.4f"%Average_Index_Size))
+    build_order_time_list.append(float("%.4f"%build_order_time))
+    # query
+    query_time = query(map_file_name)
+    query_ary.append(float("%.4f"%query_time))
+
+    # # 基于betweenness-base-label-count
+    # BFS_time,Average_Index_Size,build_order_time = build(map_file_name,6)
     # BFS_ary.append(float("%.4f"%BFS_time))
+    # Index_ary.append(float("%.4f"%Average_Index_Size))
+    # build_order_time_list.append(float("%.4f"%build_order_time))
+    # # query
     # query_time = query(map_file_name)
     # query_ary.append(float("%.4f"%query_time))
-    
-    return BFS_ary,Index_ary,query_ary
+
+    # 反馈调节
+
+    # BFS_time,Average_Index_Size = feedback_tuning(map_file_name,5)
+    # BFS_ary.append(float("%.4f"%BFS_time))
+    # Index_ary.append(float("%.4f"%Average_Index_Size))
+    # query_time = query(map_file_name)
+    # query_ary.append(float("%.4f"%query_time))
+   
+    return BFS_ary,Index_ary,query_ary,build_order_time_list
     # 迭代一次2-hop
     # BFS_time,Average_Index_Size = build(map_file_name,5)
     # BFS_ary.append(float("%.4f"%BFS_time))
@@ -57,28 +114,40 @@ def build(map_file_name,i):
     build_class.build_index()
     build_class.write_index(map_file_name)
     build_class.write_BFS_num_list(map_file_name, build_class.BFS_num_list)
-    return build_class.BFS_time, build_class.Average_Index_Size
+    return build_class.BFS_time, build_class.Average_Index_Size,build_class.build_order_time
 
     # pll.build(argv）
 
+def build_for_2_hop_order(map_file_name):
+    hop_order_class = pll.PrunedLandmarkLabeling(map_file_name)
+    hop_order_class.gen_order(5)
+    hop_order_class.fetch_nodes_list()
+    hop_order_class.load_index('pll.py')
+    hop_order_class.build_index()
 #基于扩散数下降进行调节
 def feedback_tuning(map_file_name,  w):
+    print("\n********feedback_tuning************")
     feedback_class = pll.PrunedLandmarkLabeling(map_file_name)
     nNodes = len(feedback_class.graph.nodes())
-    k = int(nNodes*0.1)
+    k = int(nNodes*0.2)
     order = list(sorted(feedback_class.graph.degree, key=lambda x: x[1], reverse=True))
+    # print(f"initial order: {order}")
     changeSet = [1,2]  
-    for i in range(10):
-        while(changeSet!=[]):
-            BFS_traverse_record, changeSet = feedback_class.feedback(order,w, k, 0.3)
-            for j in range(len(changeSet)):
-                order.insert(k,order.pop(changeSet[j]))
+    for i in range(40):
+        BFS_traverse_record, changeSet = feedback_class.feedback(order,w, k, 0.3)
+        print(f"****************\n{BFS_traverse_record}\n***********")
+        print(f"****************\n{changeSet}\n***********")
+        
+        for j in range(len(changeSet)):
+            pop_node = order.pop(changeSet[j])
+            order.insert(k, pop_node)
+    # print(f"order:{order}")
     vertex_order = generate_order_for_BFS(order)
     feedback_class.vertex_order = vertex_order
     feedback_class.build_index()
     feedback_class.write_index(map_file_name)
     feedback_class.write_BFS_num_list(map_file_name, feedback_class.BFS_num_list)
-    return feedback_class.BFS_time, feedback_class.Average_Index_Size
+    return feedback_class.BFS_time, feedback_class.Average_Index_Size,feedback_class.build_order_time
 
 
  # 查询
@@ -86,6 +155,7 @@ def query(map_file_name):
     query_class = pll.PrunedLandmarkLabeling(map_file_name)
     query_class.load_index("pll.idx")
     nodes_list = list(query_class.graph.nodes())
+    print(nodes_list)
     nNodes = len(nodes_list)
     src_index = 0
     dest_index = 0
@@ -96,6 +166,8 @@ def query(map_file_name):
         src_index = randint(0,nNodes-1)
         dest_index = randint(0,nNodes-1)
         # print(f"src_index:{src_index}")
+        # print(src_index,dest_index)
+        # print(nodes_list[src_index],nodes_list[dest_index],nodes_list[0])
         query_class.query(nodes_list[src_index],nodes_list[dest_index])
     query_time = time.time()-start_time
     return query_time
@@ -108,4 +180,4 @@ def generate_order_for_BFS(nodes_list):
     return result
 
 if __name__== "__main__":
-    entrance("test.map")
+    entrance("macau.map")

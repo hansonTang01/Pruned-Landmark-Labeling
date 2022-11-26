@@ -11,8 +11,8 @@ import xlsxwriter
 #程序入口
 def begin():
     map_file_name = fetch_map_name()
-    BFS_list, Index_list, Query_list = fetchData.entrance(map_file_name)
-    df = data2pandas(BFS_list,Index_list,Query_list)
+    BFS_list, Index_list, Query_list,build_order_time_list = fetchData.entrance(map_file_name)
+    df = data2pandas(BFS_list,Index_list,Query_list,build_order_time_list)
     print(df)
     dataFrame2excel(df,map_file_name)
 
@@ -28,12 +28,13 @@ def fetch_map_name():
         exit()
 
 # 通过pandas将list中的data插入Dataframe
-def data2pandas(BFS_list,Index_list,Query_list):
-    df = pd.DataFrame(columns=["random","Degree","Clossness","Betweenness","2-hop-based","label-count-based"])
+def data2pandas(BFS_list,Index_list,Query_list,build_order_time_list):
+    df = pd.DataFrame(columns=["Degree","degree-label-count","in-out-degree","in-out-degree-label-count","betweenness",'betweenness-2-hop-count'])
     df.loc[len(df.index)] = BFS_list
     df.loc[len(df.index)] = Index_list
     df.loc[len(df.index)] = Query_list
-    df.rename(index = {0:"indexing_time",1:"avg_label_size",2:"avg_query_time_100000"},inplace=True)
+    df.loc[len(df.index)] = build_order_time_list
+    df.rename(index = {0:"indexing_time",1:"avg_label_size",2:"query_time_100000",3:"build_order_time"},inplace=True)
     # print(df)
     return df
 
