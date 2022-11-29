@@ -11,6 +11,7 @@ import multiprocessing
 import getopt
 import numpy as np
 import taichi as ti
+import concurrent.futures
 ti.init(arch = ti.cpu)
 index_file_path = "pll.idx"
 max_length = 999999999
@@ -35,7 +36,8 @@ class PrunedLandmarkLabeling(object):
         self.Average_Index_Size = 0
         self.BFS_time = 0
         self.BFS_num_list = {}
-        self.nodes_list = []
+        # self.nodes_list = []
+        self.build_order_time = 0
     # 将构建好的index和order写入pll.idx，将index和order单独写入一个文件
     def write_index(self, map_file_name):
 
@@ -101,10 +103,10 @@ class PrunedLandmarkLabeling(object):
                 continue
             # （src, dest, dist, is_one_way）为osmnx上下载的图的格式
             src, dest, dist, is_one_way = lines.split(" ")
-            G.add_weighted_edges_from([((src), (dest), int(dist))])
+            G.add_weighted_edges_from([(src, dest, int(dist))])
             #  is_one_way=0 => 为无向图
             if (int(is_one_way) == 0):
-                G.add_weighted_edges_from([((dest), (src), int(dist))])
+                G.add_weighted_edges_from([(dest, src, int(dist))])
         # 输出节点和边的个数
         print(f"nodes:{len(G.nodes())}   edges:{len(G.edges())}")
         map_info["nodes"] = len(G.nodes())
@@ -121,6 +123,7 @@ class PrunedLandmarkLabeling(object):
         #    src_list = src_idx.get("backward",None)
         #    dest_list = dest_idx.get("forward",None)
         # print(self.index)
+        
         src_list = self.index[src]["backward"]
         dest_list = self.index[dest]["forward"]
         # print(src,dest)
@@ -163,17 +166,24 @@ class PrunedLandmarkLabeling(object):
         return shortest_dist, hop_nodes
 
     # @ti.func
-    def query_for_2_hop(self, src, dest):
-        #src_idx = self.index.get(src,None)
-        #dest_idx = self.index.get(dest,None)
-        #if src_idx and dest_idx:
-        #    src_list = src_idx.get("backward",None)
-        #    dest_list = dest_idx.get("forward",None)
-        print(self.index)
-        print(self.index[24])
-        
+    def gen_2_hop_list(self,src,dest):
+        # print(type(src))
+        # print(self.index)
+        # print(self.index[src])
         src_list = self.index[src]["backward"]
         dest_list = self.index[dest]["forward"]
+        return src_list,dest_list
+
+    # @ti.func
+    def query_for_2_hop(self, src, dest):
+        
+        # print(self.index)
+        # print(src,dest)
+        # src_list = self.index[src]["backward"]
+        # dest_list = self.index[dest]["forward"]
+        src_list,dest_list = self.gen_2_hop_list(src,dest)
+        # print(src_list)
+        # print(dest_list)
         # print(src,dest)
         # print(src_list)
         # print(dest_list)
@@ -292,34 +302,44 @@ class PrunedLandmarkLabeling(object):
     #     return nodes_list()
     # def fetch_2_hop_count(self):
     #     return 
-    # @ti.kernel
+   
     
-    def cal_2_hop_count(self, nodes_list: ti.types.ndarray()):
-        nNodes = nodes_list.shape[0]
+    '''
+        src,dest: example: 24 24
+    '''
+    def cal_2_hop_count(self, nodes_list):
+        nNodes = len(nodes_list)
         count = 0
         for src in nodes_list:
             for dest in nodes_list:
-                i, hop_list = self.query(src,dest)
+                _, hop_list = self.query(src,dest)
                 for hop_node in hop_list:
                     self.count_result[hop_node]+=1
             count += 1
             self.hop_base_process_bar(count,nNodes)
+    
     # @ti.kernel
+    '''
+        nodes_list: example: [24, 1, 595, 1143, 1392, 1405, 156]
+    '''
+    def gen_4_dim_list(self):
+        print(self.index)
+        
     def gen_2_hop_base_order(self):
         # 这里为什么没有short_dist不会被access呢？
         # short_dist = 0
+        self.gen_4_dim_list()
         self.count_result = {}
+        
         nodes_list = (list(self.graph.nodes()))
         # print(nodes_list)
         # print(f"nodes_list:{nodes_list}")
         # print(nodes_list)
-        self.load_index(index_file_path)
         for node in nodes_list:
             self.count_result[node] = 0
         #  遍历节点，得到2跳列表
         # nodes_list = list(map(int,nodes_list))
-        # print(nodes_list)
-        self.cal_2_hop_count(np.array(nodes_list))
+        self.cal_2_hop_count(nodes_list)
         
         # print(f"count_result:{count_result}")
         # print("test!test!")
@@ -344,7 +364,7 @@ class PrunedLandmarkLabeling(object):
         for node in nodes_list:
             count_result[node] = 0
 
-        temp_index = self.load_index(index_file_path)
+        temp_index = self.index
         for node in nodes_list:
             bd_list = temp_index[node]["backward"]
             fw_list = temp_index[node]["forward"]
@@ -405,6 +425,9 @@ class PrunedLandmarkLabeling(object):
     #     #     result[v[0]] = nNodes - idx
     # # 生成节点的order
 
+    '''
+        生成了self.build_order_time, self.vertex_order
+    '''
     def gen_order(self, mode = 0):
         # 根据输入的mode采取不同的策略构建节点的order
         # mode = 1 => sequential order（图的输入顺序）
@@ -469,12 +492,16 @@ class PrunedLandmarkLabeling(object):
         return True
 
     # 进行BFS
-    
+    '''
+        生成了self.index, self.BFS_num_list, self.BFS_time
+        无返回值
+    '''
     def build_index(self):
         # print(self.vertex_order)
         # 构建BFS_num记录每轮BFS遍历的节点个数
         vertex_order = self.vertex_order
         nodes_list = list(vertex_order.keys())
+        
         # for index, node in enumerate(self.vertex_order):
         #     self.BFS_num_list[node] = 0
         for i in range(len(nodes_list)):
@@ -484,9 +511,12 @@ class PrunedLandmarkLabeling(object):
         has_process = {}
         pq = Q.PriorityQueue()
         # print(f'pq:{pq}\n')
-        for v in self.graph.nodes():
+        for v in sorted(list(self.graph.nodes())):
+            # backward-0   forward-1
             self.index[v] = {"backward": [], "forward": []}
             has_process[v] = False
+
+        # print(self.index)
         # print(f"self.index:{self.index}")
         # print(f"has_process:{has_process}")
         i = 0
@@ -565,7 +595,8 @@ class PrunedLandmarkLabeling(object):
             # print(self.BFS_num_list)
             count = 0
         # 记录BFS时间
-        print(f"index:{self.index}")
+        # print(f"index:{self.index}")
+        # print(f"order:{self.vertex_order}")
         print(f'finish building index')
         self.BFS_time = time.time() - start_time_BFS
         print(f'Time cost: {(self.BFS_time):.4f}')
