@@ -10,15 +10,15 @@ import threading
 import multiprocessing
 import getopt
 import numpy as np
-import taichi as ti
+# import taichi as ti
 import concurrent.futures
-ti.init(arch = ti.cpu)
+# ti.init(arch = ti.cpu)
 index_file_path = "pll.idx"
 max_length = 999999999
 
 
 #Build调用： PrunedLandmarkLabeling(map_file_name, order_mode, False, is_multi_process)
-@ti.data_oriented
+# @ti.data_oriented
 class PrunedLandmarkLabeling(object):
     '''
         attribute: 
@@ -175,53 +175,55 @@ class PrunedLandmarkLabeling(object):
         return src_list,dest_list
 
     # @ti.func
-    def query_for_2_hop(self, src, dest):
-        
+    def query_for_2_hop(self, src):
+        #src_idx = self.index.get(src,None)
+        #dest_idx = self.index.get(dest,None)
+        #if src_idx and dest_idx:
+        #    src_list = src_idx.get("backward",None)
+        #    dest_list = dest_idx.get("forward",None)
         # print(self.index)
-        # print(src,dest)
-        # src_list = self.index[src]["backward"]
-        # dest_list = self.index[dest]["forward"]
-        src_list,dest_list = self.gen_2_hop_list(src,dest)
-        # print(src_list)
-        # print(dest_list)
-        # print(src,dest)
-        # print(src_list)
-        # print(dest_list)
-        i = 0
-        j = 0
-        
-        shortest_dist = max_length
-        hop_nodes = []
-        
-        # 构建好的index里label是按照nodes_list里的节点顺序排序的，所以可以这么写
-        while i < len(src_list) and j < len(dest_list):
-            
-            if src_list[i][0] == dest_list[j][0]:
-                # print(src_list[i][0] == dest_list[j][0])
-                curr_dist = src_list[i][1] + dest_list[j][1]
-                if(curr_dist == 0 or curr_dist == 1):
-                    hop_nodes.clear()
-                    shortest_dist = curr_dist
-                    break
-                # print(curr_dist)
-                # 当前距离未必为最小，若找到更小的距离，更新最小距离，之前的 hop_nodes作废，用新的代替
-                if curr_dist < shortest_dist:
-                    shortest_dist = curr_dist
-                    hop_nodes.clear()
-                    hop_nodes.append(src_list[i][0])   
-                # 假定当前距离为最小，相等的点被暂时加入到 hop_nodes中
-                elif curr_dist == shortest_dist:
-                    hop_nodes.append(src_list[i][0])
-                i += 1
-                j += 1
-        
-            elif self.vertex_order[src_list[i][0]] > self.vertex_order[dest_list[j][0]]:
+        count_result = {}
+        nodes_list = list(self.graph.nodes())
+        for node in nodes_list:
+            count_result[node] = 0
+        src_list = self.index[src]["backward"]
+        for dest in nodes_list:
+            i = 0
+            j = 0
+            shortest_dist = max_length
+            hop_nodes = []
+            dest_list = self.index[dest]["forward"]
+            while i < len(src_list) and j < len(dest_list):
+                if src_list[i][0] == dest_list[j][0]:
+                    # print(src_list[i][0] == dest_list[j][0])
+                    curr_dist = src_list[i][1] + dest_list[j][1]
+                    if(curr_dist == 0 or curr_dist == 1):
+                        hop_nodes.clear()
+                        shortest_dist = curr_dist
+                        break
+                    # print(curr_dist)
+                    # 当前距离未必为最小，若找到更小的距离，更新最小距离，之前的 hop_nodes作废，用新的代替
+                    if curr_dist < shortest_dist:
+                        shortest_dist = curr_dist
+                        hop_nodes.clear()
+                        hop_nodes.append(src_list[i][0])   
+                    # 假定当前距离为最小，相等的点被暂时加入到 hop_nodes中
+                    elif curr_dist == shortest_dist:
+                        hop_nodes.append(src_list[i][0])
                     i += 1
-            else:
                     j += 1
+            
+                elif self.vertex_order[src_list[i][0]] > self.vertex_order[dest_list[j][0]]:
+                        i += 1
+                else:
+                        j += 1
+            for hop_node in hop_nodes:
+                count_result[hop_node]+=1   
+            # print(count_result)
+        return count_result
+                # print(self.count_result)
         # print(shortest_dist)
         # print(hop_nodes)
-        return shortest_dist, hop_nodes
 
     # 加载图的Index
     def load_index(self, index_file_path):
@@ -310,13 +312,18 @@ class PrunedLandmarkLabeling(object):
     def cal_2_hop_count(self, nodes_list):
         nNodes = len(nodes_list)
         count = 0
-        for src in nodes_list:
-            for dest in nodes_list:
-                _, hop_list = self.query(src,dest)
-                for hop_node in hop_list:
-                    self.count_result[hop_node]+=1
-            count += 1
-            self.hop_base_process_bar(count,nNodes)
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            result = executor.map(self.query_for_2_hop, nodes_list, chunksize= 48)
+        print("************")
+        for sub_list in result:
+            for key,value in sub_list.items():
+                self.count_result[key] += value
+        # print(self.count_result)
+        # print(result)
+        # for src in nodes_list:
+        #     self.query_for_2_hop(src)
+        #     count += 1
+        #     self.hop_base_process_bar(count,nNodes)
     
     # @ti.kernel
     '''
@@ -328,7 +335,7 @@ class PrunedLandmarkLabeling(object):
     def gen_2_hop_base_order(self):
         # 这里为什么没有short_dist不会被access呢？
         # short_dist = 0
-        self.gen_4_dim_list()
+        # self.gen_4_dim_list()
         self.count_result = {}
         
         nodes_list = (list(self.graph.nodes()))
