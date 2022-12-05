@@ -94,7 +94,7 @@ class PrunedLandmarkLabeling(object):
     def read_graph(self, map_file_name):
         map_info = {}
         G = nx.DiGraph()
-        f = open(map_file_name, 'r')
+        f = open("map_file/" + map_file_name, 'r')
         data = f.readlines()
         f.close()
         for idx, lines in enumerate(data):
@@ -313,7 +313,7 @@ class PrunedLandmarkLabeling(object):
         nNodes = len(nodes_list)
         count = 0
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            result = executor.map(self.query_for_2_hop, nodes_list, chunksize= 48)
+            result = executor.map(self.query_for_2_hop, nodes_list, chunksize= 128)
         print("************")
         for sub_list in result:
             for key,value in sub_list.items():
@@ -383,10 +383,11 @@ class PrunedLandmarkLabeling(object):
         nodes_list = list(sorted(count_result.items(), key=lambda item:item[1], reverse = True))
         # print(f"nodes_list:{nodes_list}")
         # 将count_result写入文件
-        fileName = "./idx_list/"+ self.map_file_name+ "label_base_count.idx"
+        fileName = "./idx_list/"+ self.map_file_name+ "_label_base_count.idx"
         f = open(fileName, 'a')
         write_data = json.dumps(nodes_list)
         f.write(write_data)
+        f.write('\n')
         f.close()
         
         result = self.generate_order_for_BFS(nodes_list)
