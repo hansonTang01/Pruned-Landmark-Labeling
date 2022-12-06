@@ -51,14 +51,14 @@ class PrunedLandmarkLabeling(object):
         f.close()
 
         # index写入单独文件
-        fileName = "./idx_list/"+map_file_name+"_index.idx"
+        fileName = "./idx_list/"+map_file_name+"_index.txt"
         f = open(fileName,"a")
         f.write(write_data)
         f.write("\n")
         f.close()
 
         # order写入单独文件
-        fileName = "./idx_list/"+map_file_name+"_order.idx"
+        fileName = "./idx_list/"+map_file_name+"_order.txt"
         f = open(fileName,"a")
         f.write(json.dumps(self.vertex_order))
         f.write("\n")
@@ -74,7 +74,7 @@ class PrunedLandmarkLabeling(object):
     #     f.close()
     # 将每轮BFS遍历的节点个数写入文件
     def write_BFS_num_list(self, map_file_name, BFS_num_list):
-        fileName = "./idx_list/"+map_file_name+"_each_BFS_num.idx"
+        fileName = "./idx_list/"+map_file_name+"_each_BFS_num.txt"
         f = open(fileName, 'a')
         write_data = json.dumps(BFS_num_list)
         f.write(write_data)
@@ -83,7 +83,7 @@ class PrunedLandmarkLabeling(object):
 
     # 将图的节点和变数写入文件
     def write_map_info(self,map_file_name, map_info):
-         fileName = "./idx_list/"+map_file_name+"_map_info.idx"
+         fileName = "./idx_list/"+map_file_name+"_map_info.txt"
          f = open(fileName, 'w')
          write_data = json.dumps(map_info)
          f.write(write_data)
@@ -324,7 +324,7 @@ class PrunedLandmarkLabeling(object):
         #     self.query_for_2_hop(src)
         #     count += 1
         #     self.hop_base_process_bar(count,nNodes)
-    
+     
     # @ti.kernel
     '''
         nodes_list: example: [24, 1, 595, 1143, 1392, 1405, 156]
@@ -354,7 +354,7 @@ class PrunedLandmarkLabeling(object):
         nodes_list = list(sorted(self.count_result.items(), key=lambda item:item[1], reverse = True))
         # print(f"nodes_list:{nodes_list}")
         # 将count_result写入文件
-        fileName = "./idx_list/"+ self.map_file_name+ "_2_hop_node_count.idx"
+        fileName = "./idx_list/"+ self.map_file_name+ "_2_hop_node_count.txt"
         f = open(fileName, 'w')
         write_data = json.dumps(nodes_list)
         f.write(write_data)
@@ -383,7 +383,7 @@ class PrunedLandmarkLabeling(object):
         nodes_list = list(sorted(count_result.items(), key=lambda item:item[1], reverse = True))
         # print(f"nodes_list:{nodes_list}")
         # 将count_result写入文件
-        fileName = "./idx_list/"+ self.map_file_name+ "_label_base_count.idx"
+        fileName = "./idx_list/"+ self.map_file_name+ "_label_base_count.txt"
         f = open(fileName, 'a')
         write_data = json.dumps(nodes_list)
         f.write(write_data)
