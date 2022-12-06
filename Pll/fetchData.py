@@ -38,32 +38,32 @@ def entrance(mapName):
     query_time = query(map_file_name,pll_class)
     query_ary.append(float("%.4f"%query_time))
 
-    # 基于degree-base-label-count
-    BFS_time,Average_Index_Size,build_order_time = build(map_file_name,6,pll_class)
-    BFS_ary.append(float("%.4f"%BFS_time))
-    Index_ary.append(float("%.4f"%Average_Index_Size))
-    build_order_time_list.append(float("%.4f"%build_order_time))
-    # query
-    query_time = query(map_file_name,pll_class)
-    query_ary.append(float("%.4f"%query_time))
+    # # 基于degree-base-label-count
+    # BFS_time,Average_Index_Size,build_order_time = build(map_file_name,6,pll_class)
+    # BFS_ary.append(float("%.4f"%BFS_time))
+    # Index_ary.append(float("%.4f"%Average_Index_Size))
+    # build_order_time_list.append(float("%.4f"%build_order_time))
+    # # query
+    # query_time = query(map_file_name,pll_class)
+    # query_ary.append(float("%.4f"%query_time))
 
-    # 基于in-out-degree
-    BFS_time,Average_Index_Size,build_order_time = build(map_file_name,7,pll_class)
-    BFS_ary.append(float("%.4f"%BFS_time))
-    Index_ary.append(float("%.4f"%Average_Index_Size))
-    build_order_time_list.append(float("%.4f"%build_order_time))
-    # query
-    query_time = query(map_file_name,pll_class)
-    query_ary.append(float("%.4f"%query_time))
+    # # 基于in-out-degree
+    # BFS_time,Average_Index_Size,build_order_time = build(map_file_name,7,pll_class)
+    # BFS_ary.append(float("%.4f"%BFS_time))
+    # Index_ary.append(float("%.4f"%Average_Index_Size))
+    # build_order_time_list.append(float("%.4f"%build_order_time))
+    # # query
+    # query_time = query(map_file_name,pll_class)
+    # query_ary.append(float("%.4f"%query_time))
 
-    # 基于in-outdegree-base-label-count
-    BFS_time,Average_Index_Size,build_order_time = build(map_file_name,6,pll_class)
-    BFS_ary.append(float("%.4f"%BFS_time))
-    Index_ary.append(float("%.4f"%Average_Index_Size))
-    build_order_time_list.append(float("%.4f"%build_order_time))
-    # query
-    query_time = query(map_file_name,pll_class)
-    query_ary.append(float("%.4f"%query_time))
+    # # 基于in-outdegree-base-label-count
+    # BFS_time,Average_Index_Size,build_order_time = build(map_file_name,6,pll_class)
+    # BFS_ary.append(float("%.4f"%BFS_time))
+    # Index_ary.append(float("%.4f"%Average_Index_Size))
+    # build_order_time_list.append(float("%.4f"%build_order_time))
+    # # query
+    # query_time = query(map_file_name,pll_class)
+    # query_ary.append(float("%.4f"%query_time))
 
     # 基于betweenness
     BFS_time,Average_Index_Size,build_order_time = build(map_file_name,4,pll_class)

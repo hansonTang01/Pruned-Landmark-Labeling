@@ -38,6 +38,7 @@ class PrunedLandmarkLabeling(object):
         self.BFS_num_list = {}
         # self.nodes_list = []
         self.build_order_time = 0
+
     # 将构建好的index和order写入pll.idx，将index和order单独写入一个文件
     def write_index(self, map_file_name):
 
@@ -313,7 +314,7 @@ class PrunedLandmarkLabeling(object):
         nNodes = len(nodes_list)
         count = 0
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            result = executor.map(self.query_for_2_hop, nodes_list, chunksize= 128)
+            result = executor.map(self.query_for_2_hop, nodes_list, chunksize= 512)
         print("************")
         for sub_list in result:
             for key,value in sub_list.items():

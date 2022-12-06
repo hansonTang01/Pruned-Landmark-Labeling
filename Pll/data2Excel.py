@@ -12,7 +12,8 @@ import xlsxwriter
 def begin():
     map_file_name = fetch_map_name()
     BFS_list, Index_list, Query_list,build_order_time_list = fetchData.entrance(map_file_name)
-    df = data2pandas(BFS_list,Index_list,Query_list,build_order_time_list)
+    total_time_list = [BFS_list[i] + build_order_time_list[i] for i in range(len(BFS_list))]
+    df = data2pandas(BFS_list,Index_list,Query_list,build_order_time_list, total_time_list)
     print(df)
     dataFrame2excel(df,map_file_name)
 
@@ -28,13 +29,15 @@ def fetch_map_name():
         exit()
 
 # 通过pandas将list中的data插入Dataframe
-def data2pandas(BFS_list,Index_list,Query_list,build_order_time_list):
-    df = pd.DataFrame(columns=["Degree","degree-label-count","in-out-degree","in-out-degree-label-count","betweenness",'betweenness-2-hop-count'])
+def data2pandas(BFS_list,Index_list,Query_list,build_order_time_list, total_time_list):
+    df = pd.DataFrame(columns=["Degree","betweenness",'betweenness-2-hop-count'])
     df.loc[len(df.index)] = BFS_list
     df.loc[len(df.index)] = Index_list
     df.loc[len(df.index)] = Query_list
     df.loc[len(df.index)] = build_order_time_list
-    df.rename(index = {0:"indexing_time",1:"avg_label_size",2:"query_time_100000",3:"build_order_time"},inplace=True)
+    df.loc[len(df.index)] = total_time_list
+    df.rename(index = {0:"indexing_time",1:"avg_label_size",2:"query_time_100000",3:"build_order_time",4:"each_total_time"},inplace=True)
+
     # print(df)
     return df
 
@@ -49,6 +52,9 @@ def dataFrame2excel(df, map_file_name):
     workbook = writer.book
     worksheet = writer.sheets['Sheet1']
     worksheet.set_column('A:G', 25)
+    total_time = df.loc['each_total_time',"Degree"] + df.loc['each_total_time',"betweenness"] + df.loc['each_total_time',"betweenness-2-hop-count"]
+    print(f"total_time: {total_time}")
+    worksheet.write(7,0,total_time)
     writer.save()
     # df.to_excel(excel_file_name,            # 路径和文件名
     #         sheet_name='sheet1',     # sheet 的名字
